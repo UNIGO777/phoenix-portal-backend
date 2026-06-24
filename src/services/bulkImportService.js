@@ -35,17 +35,37 @@ const importBusinesses = async (rows) => {
       continue;
     }
 
-    // Resolve industry
-    const industryId = industryMap[row.industryName.toLowerCase()];
+    // Resolve industry — auto-create if missing
+    let industryId = row.industryName ? industryMap[row.industryName.toLowerCase()] : null;
+    if (!industryId && row.industryName) {
+      try {
+        const newIndustry = await Industry.create({ name: row.industryName.trim() });
+        industryId = newIndustry._id;
+        industryMap[newIndustry.name.toLowerCase()] = industryId;
+      } catch (err) {
+        results.errors.push({ row: rowNum, message: `Failed to create industry "${row.industryName}": ${err.message}` });
+        continue;
+      }
+    }
     if (!industryId) {
-      results.errors.push({ row: rowNum, message: `Industry not found: "${row.industryName}"` });
+      results.errors.push({ row: rowNum, message: 'Industry name is required' });
       continue;
     }
 
-    // Resolve country
-    const countryId = countryMap[row.countryName.toLowerCase()];
+    // Resolve country — auto-create if missing
+    let countryId = row.countryName ? countryMap[row.countryName.toLowerCase()] : null;
+    if (!countryId && row.countryName) {
+      try {
+        const newCountry = await Country.create({ name: row.countryName.trim() });
+        countryId = newCountry._id;
+        countryMap[newCountry.name.toLowerCase()] = countryId;
+      } catch (err) {
+        results.errors.push({ row: rowNum, message: `Failed to create country "${row.countryName}": ${err.message}` });
+        continue;
+      }
+    }
     if (!countryId) {
-      results.errors.push({ row: rowNum, message: `Country not found: "${row.countryName}"` });
+      results.errors.push({ row: rowNum, message: 'Country name is required' });
       continue;
     }
 
