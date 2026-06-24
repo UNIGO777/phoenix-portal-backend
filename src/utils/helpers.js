@@ -13,6 +13,10 @@ const generateTempPassword = () => {
   return password;
 };
 
+const generateOtp = () => {
+  return crypto.randomInt(100000, 999999).toString();
+};
+
 class AppError extends Error {
   constructor(message, statusCode) {
     super(message);
@@ -21,4 +25,4 @@ class AppError extends Error {
   }
 }
 
-module.exports = { generateResetToken, generateTempPassword, AppError };
+module.exports = { generateResetToken, generateTempPassword, generateOtp, AppError };

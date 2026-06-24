@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const env = require('../config/env');
 const Admin = require('../models/Admin');
 const User = require('../models/User');
+const Otp = require('../models/Otp');
 const {
   generateTokens,
   setTokenCookies,
@@ -10,8 +11,8 @@ const {
   handleFailedLogin,
   resetLoginAttempts,
 } = require('../services/authService');
-const { sendPasswordResetEmail } = require('../services/emailService');
-const { AppError, generateResetToken } = require('../utils/helpers');
+const { sendPasswordResetEmail, sendOtpEmail } = require('../services/emailService');
+const { AppError, generateResetToken, generateOtp } = require('../utils/helpers');
 
 // ── Admin Auth ──
 
@@ -40,16 +41,22 @@ exports.adminLogin = async (req, res, next) => {
 
     await resetLoginAttempts(admin);
 
-    const tokens = generateTokens(admin._id, 'admin');
-    setTokenCookies(res, tokens);
+    // Generate OTP and send via email
+    const otpCode = generateOtp();
+    await Otp.deleteMany({ email: admin.email, role: 'admin' });
+    await Otp.create({
+      email: admin.email,
+      code: otpCode,
+      role: 'admin',
+      expiresAt: new Date(Date.now() + 5 * 60 * 1000), // 5 minutes
+    });
+
+    await sendOtpEmail(admin.email, otpCode, admin.name);
 
     res.json({
       success: true,
-      message: 'Login successful',
-      data: {
-        admin: admin.toJSON(),
-        accessToken: tokens.accessToken,
-      },
+      message: 'OTP sent to your email',
+      data: { otpRequired: true, email: admin.email },
     });
   } catch (error) {
     next(error);
@@ -165,16 +172,22 @@ exports.userLogin = async (req, res, next) => {
 
     await resetLoginAttempts(user);
 
-    const tokens = generateTokens(user._id, 'user');
-    setTokenCookies(res, tokens, !!rememberMe);
+    // Generate OTP and send via email
+    const otpCode = generateOtp();
+    await Otp.deleteMany({ email: user.email, role: 'user' });
+    await Otp.create({
+      email: user.email,
+      code: otpCode,
+      role: 'user',
+      expiresAt: new Date(Date.now() + 5 * 60 * 1000), // 5 minutes
+    });
+
+    await sendOtpEmail(user.email, otpCode, user.fullName);
 
     res.json({
       success: true,
-      message: 'Login successful',
-      data: {
-        user: user.toJSON(),
-        accessToken: tokens.accessToken,
-      },
+      message: 'OTP sent to your email',
+      data: { otpRequired: true, email: user.email, rememberMe: !!rememberMe },
     });
   } catch (error) {
     next(error);
@@ -256,6 +269,74 @@ exports.userChangePassword = async (req, res, next) => {
 exports.userLogout = async (req, res) => {
   clearTokenCookies(res);
   res.json({ success: true, message: 'Logged out successfully' });
+};
+
+// ── OTP Verification ──
+
+exports.adminVerifyOtp = async (req, res, next) => {
+  try {
+    const { email, otp } = req.body;
+
+    const otpRecord = await Otp.findOne({ email, role: 'admin', expiresAt: { $gt: new Date() } });
+    if (!otpRecord || otpRecord.code !== otp) {
+      return res.status(401).json({ success: false, message: 'Invalid or expired OTP' });
+    }
+
+    // OTP valid — delete it and issue tokens
+    await Otp.deleteMany({ email, role: 'admin' });
+
+    const admin = await Admin.findOne({ email });
+    if (!admin) {
+      return res.status(401).json({ success: false, message: 'Admin not found' });
+    }
+
+    const tokens = generateTokens(admin._id, 'admin');
+    setTokenCookies(res, tokens);
+
+    res.json({
+      success: true,
+      message: 'Login successful',
+      data: {
+        admin: admin.toJSON(),
+        accessToken: tokens.accessToken,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.userVerifyOtp = async (req, res, next) => {
+  try {
+    const { email, otp, rememberMe } = req.body;
+
+    const otpRecord = await Otp.findOne({ email, role: 'user', expiresAt: { $gt: new Date() } });
+    if (!otpRecord || otpRecord.code !== otp) {
+      return res.status(401).json({ success: false, message: 'Invalid or expired OTP' });
+    }
+
+    // OTP valid — delete it and issue tokens
+    await Otp.deleteMany({ email, role: 'user' });
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'User not found' });
+    }
+
+    const tokens = generateTokens(user._id, 'user');
+    setTokenCookies(res, tokens, !!rememberMe);
+
+    res.json({
+      success: true,
+      message: 'Login successful',
+      data: {
+        user: user.toJSON(),
+        accessToken: tokens.accessToken,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
 // ── Refresh Token ──

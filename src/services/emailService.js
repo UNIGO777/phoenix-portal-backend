@@ -255,6 +255,38 @@ const sendInquiryConfirmationUser = async (inquiry) => {
   });
 };
 
+// ─────────────────────────────────────────────────
+// 5. OTP Verification Email
+// ─────────────────────────────────────────────────
+
+const sendOtpEmail = async (email, otpCode, fullName) => {
+  const body = `
+    <div style="font-size:13px;font-weight:600;letter-spacing:0.06em;color:#ff8a5c;text-transform:uppercase;margin-bottom:8px;">Verification</div>
+    <h1 style="font-size:24px;font-weight:600;color:#eef3ff;margin:0 0 8px;letter-spacing:-0.01em;">Login Verification Code</h1>
+    <p style="font-size:15px;color:#8ea2c8;line-height:1.6;margin:0;">
+      ${fullName ? `Hello <strong style="color:#bcd0f2;">${fullName}</strong>,<br><br>` : ''}Use the following code to complete your login. This code expires in <strong style="color:#bcd0f2;">5 minutes</strong>.
+    </p>
+
+    <div style="text-align:center;margin:28px 0;">
+      <div style="display:inline-block;background:rgba(6,12,28,0.5);border:1px solid rgba(150,190,255,0.15);border-radius:14px;padding:20px 40px;">
+        <span style="font-size:36px;font-weight:700;letter-spacing:0.3em;color:#7fa6ff;font-family:'Courier New',monospace;">${otpCode}</span>
+      </div>
+    </div>
+
+    <div style="background:rgba(255,122,69,0.08);border:1px solid rgba(255,138,92,0.2);border-radius:10px;padding:14px 18px;margin:0 0 4px;">
+      <p style="font-size:13px;color:#ffb39c;margin:0;line-height:1.5;">
+        <strong>Security Notice:</strong> If you did not attempt to log in, your password may be compromised. Please reset your password immediately.
+      </p>
+    </div>
+  `;
+
+  return sendEmail({
+    to: email,
+    subject: 'Phoenix Business Exchange — Login Verification Code',
+    html: emailShell(body),
+  });
+};
+
 // ── Backward-compatible alias ──
 
 const sendInquiryNotification = async (inquiry) => {
@@ -268,6 +300,7 @@ module.exports = {
   sendEmail,
   sendPasswordResetEmail,
   sendNewUserEmail,
+  sendOtpEmail,
   sendInquiryNotification,
   sendInquiryNotificationAdmin,
   sendInquiryConfirmationUser,

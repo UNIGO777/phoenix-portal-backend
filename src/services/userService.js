@@ -3,11 +3,11 @@ const { generateTempPassword } = require('../utils/helpers');
 const { sendNewUserEmail } = require('./emailService');
 
 const createUser = async (userData) => {
-  const tempPassword = generateTempPassword();
-  const user = await User.create({ ...userData, password: tempPassword });
+  const password = userData.password || generateTempPassword();
+  const user = await User.create({ ...userData, password });
 
-  // Send welcome email with temp password and name
-  await sendNewUserEmail(user.email, tempPassword, user.fullName);
+  // Send welcome email with password and name
+  await sendNewUserEmail(user.email, password, user.fullName);
 
   return user;
 };
