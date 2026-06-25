@@ -4,7 +4,6 @@ const logger = require('../utils/logger');
 const Industry = require('../models/Industry');
 const Country = require('../models/Country');
 const Admin = require('../models/Admin');
-const User = require('../models/User');
 
 const industries = [
   { name: 'Technology', image: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=600&q=80' },
@@ -80,53 +79,18 @@ async function seed() {
     }
     logger.info(`Countries: ${created} created, ${countries.length - created} already existed`);
 
-    // Seed admins
-    const adminEmails = ['admin@phoenixexchange.com', 'naman13399@gmail.com'];
-    const adminPasswords = {
-      'admin@phoenixexchange.com': 'Admin@123456',
-      'naman13399@gmail.com': 'Naman@13399',
-    };
-    const adminNames = {
-      'admin@phoenixexchange.com': 'Super Admin',
-      'naman13399@gmail.com': 'Naman',
-    };
-
-    for (const email of adminEmails) {
-      const exists = await Admin.findOne({ email });
-      if (!exists) {
-        await Admin.create({
-          email,
-          password: adminPasswords[email],
-          name: adminNames[email],
-        });
-        logger.info(`Admin created: ${email}`);
-      } else {
-        logger.info(`Admin already exists: ${email}`);
-      }
-    }
-
-    // Seed users
-    const userEmails = ['orgnxtgendigitals@gmail.com'];
-    const userPasswords = {
-      'orgnxtgendigitals@gmail.com': 'Naman@13399',
-    };
-    const userNames = {
-      'orgnxtgendigitals@gmail.com': 'OrgNxt Gen Digitals',
-    };
-
-    for (const email of userEmails) {
-      const exists = await User.findOne({ email });
-      if (!exists) {
-        await User.create({
-          email,
-          password: userPasswords[email],
-          fullName: userNames[email],
-          isActive: true,
-        });
-        logger.info(`User created: ${email} (isActive: true)`);
-      } else {
-        logger.info(`User already exists: ${email}`);
-      }
+    // Seed admin
+    const adminEmail = 'info@pcba.com.au';
+    const exists = await Admin.findOne({ email: adminEmail });
+    if (!exists) {
+      await Admin.create({
+        email: adminEmail,
+        password: 'info@1234',
+        name: 'Admin',
+      });
+      logger.info(`Admin created: ${adminEmail}`);
+    } else {
+      logger.info(`Admin already exists: ${adminEmail}`);
     }
 
     logger.info('Seeding complete');
