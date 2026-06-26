@@ -37,7 +37,7 @@ module.exports = {
   },
 
   upload: {
-    maxFileSize: parseInt(process.env.MAX_FILE_SIZE, 10) || 5 * 1024 * 1024,
+    maxFileSize: parseInt(process.env.MAX_FILE_SIZE, 10) || 10 * 1024 * 1024,
     maxFiles: parseInt(process.env.MAX_FILES, 10) || 10,
   },
 };
